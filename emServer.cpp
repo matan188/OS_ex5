@@ -17,7 +17,10 @@ int main(int argc, char * argv[]) {
 
     emServer * ems = new emServer();
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
+    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
+    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
     cout << ems->removeEvent(1) << endl;
+    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
     cout << ems->addClient("x") << endl;
     cout << ems->removeClient("x") << endl;
     cout << ems->addClient("x") << endl;
@@ -50,7 +53,7 @@ int main(int argc, char * argv[]) {
     cout << "bind done" << endl;
 
     // Listen
-    listen(socket_desc , 3);
+    listen(socket_desc , 10);
 
     // Accept incoming connection
     puts("Waiting for incoming connections...");
@@ -87,7 +90,7 @@ int main(int argc, char * argv[]) {
 
 emServer::emServer() {
     _eventsMut = PTHREAD_MUTEX_INITIALIZER;
-
+    _eventCounter = -1;
 }
 
 emServer::~emServer() {
@@ -106,28 +109,30 @@ emServer::~emServer() {
 int emServer::addEvent(string title, string date, string description) {
     // find empty cell and add event
     vector<string> * clients = new vector<string>;
-    Event * event = new Event(title, date, description);
+    int id = getEventCounter();
+    Event * event = new Event(id, title, date, description);
     auto p = new pair<Event*, vector<string>*>(event, clients);
     int i = 0;
-    int newEventId = -1;
+    bool foundEmptyCell = false;
     pthread_mutex_lock(&_eventsMut);
     for(auto it : _events) {
         if(it == nullptr) {
             _events.at(i) = p;
-            newEventId = i;
+            foundEmptyCell = true;
             break;
         }
         ++i;
     }
     // if there is no empty cell, push new event in vector's end
-    if(newEventId == -1) {
+    if(!foundEmptyCell) {
         // no empty cell. use pushback
-        newEventId = (int) _events.size();
         _events.push_back(p);
     }
-    pthread_mutex_unlock(&_eventsMut);
 
-    return newEventId;
+    // add sort here by first->getId()
+
+    pthread_mutex_unlock(&_eventsMut);
+    return id;
 }
 
 /**
@@ -184,4 +189,9 @@ int emServer::removeClient(string name) {
     }
     pthread_mutex_unlock(&_clientsMut);
     return ret;
+}
+
+int emServer::getEventCounter() {
+    ++_eventCounter;
+    return _eventCounter;
 }

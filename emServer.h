@@ -22,11 +22,11 @@ using namespace std;
 
 class emServer {
 private:
-
     vector<pair<Event*, vector<string>*>*> _events; // map event ids to a list of client names
     pthread_mutex_t _eventsMut; // mutex for protecting events data
     vector<string> _clients;
     pthread_mutex_t _clientsMut; // mutex for protecting clients data
+    int _eventCounter; // current max event id
 public:
     emServer();
     ~emServer();
@@ -34,6 +34,7 @@ public:
     int removeEvent(int id);
     int addClient(string name);
     int removeClient(string name);
+    int getEventCounter();
 };
 
 

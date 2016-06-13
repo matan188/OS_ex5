@@ -4,5 +4,5 @@
 
 #include "Event.h"
 
-Event::Event(string title, string date, string description):
-        _title(title), _date(date), _description(description) {}
+Event::Event(int id, string title, string date, string description):
+        _id(id), _title(title), _date(date), _description(description) {}

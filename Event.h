@@ -8,11 +8,16 @@ using namespace std;
 
 class Event {
 private:
+    int _id;
     string _title;
     string _date;
     string _description;
 public:
-    Event(string title, string date, string description);
+    Event(int id, string title, string date, string description);
+    int getId() { return _id; };
+    string getTitle() { return _title; };
+    string getDate() { return _date; };
+    string getDescription() { return _description; };
 };
 
 
