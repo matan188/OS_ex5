@@ -2,20 +2,22 @@
 #ifndef OS_EX5_EMSERVER_H
 #define OS_EX5_EMSERVER_H
 
-#include<iostream>
-#include<stdio.h>
-#include<string.h>    //strlen
-#include<sys/socket.h>
-#include<arpa/inet.h> //inet_addr
-#include<unistd.h>    //write#include<stdio.h>
-#include<string.h>    //strlen
-#include<sys/socket.h>
-#include<arpa/inet.h> //inet_addr
-#include<unistd.h>    //write
-#include<cstdlib>
-#include<map>
-#include<vector>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>    //strlen
+#include <sys/socket.h>
+#include <arpa/inet.h> //inet_addr
+#include <unistd.h>    //write#include<stdio.h>
+#include <string.h>    //strlen
+#include <sys/socket.h>
+#include <arpa/inet.h> //inet_addr
+#include <unistd.h>    //write
+#include <cstdlib>
+#include <map>
+#include <vector>
 #include <pthread.h>
+#include <algorithm>
+#include <locale.h>
 #include "Event.h"
 
 using namespace std;
@@ -35,6 +37,8 @@ public:
     int addClient(string name);
     int removeClient(string name);
     int getEventCounter();
+    int assignClientToEvent(int eventId, string clientName);
+    int removeClientFromEvent(int eventId, string clientName);
 };
 
 
