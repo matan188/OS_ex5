@@ -3,6 +3,8 @@
 
 using namespace std;
 
+vector<pthread_t *> threadsVec;
+int socket_desc;
 bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> * b) {
     if(a == nullptr) {
         return -1;
@@ -17,6 +19,24 @@ void writeToLog(string msg) {
     cout << "LOG\t" << msg << endl;
 }
 
+void * doJob(void * p) {
+    int * client_sock = (int *) p;
+    cout << "doing job" << endl;
+
+    char client_message[2000];
+    ssize_t read_size;
+    // Receive a message from client
+    read_size = read(socket_desc, client_message, 100);
+    cout << read_size << endl;
+    while(read_size > 0) {
+        cout << client_message << endl;
+        read_size = read(socket_desc, client_message, 100);
+    }
+
+    close(*client_sock);
+    return nullptr;
+}
+
 int main(int argc, char * argv[]) {
 
     if(argc != 2) {
@@ -25,6 +45,7 @@ int main(int argc, char * argv[]) {
     }
 
     emServer * ems = new emServer();
+    /*
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
@@ -34,17 +55,16 @@ int main(int argc, char * argv[]) {
     cout << ems->addClient("x") << endl;
     cout << ems->removeClient("x") << endl;
     cout << ems->addClient("x") << endl;
-
+    */
     int portNum = atoi(argv[1]); // set port number
-    int socket_desc , client_sock , c, read_size;
+    int client_sock , c;
     struct sockaddr_in server, client;
 
     fd_set readset;
 
     // Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc == -1)
-    {
+    if (socket_desc == -1) {
         cout << "Could not create socket" << endl;
     }
     cout << "Socket created" << endl;
@@ -66,6 +86,8 @@ int main(int argc, char * argv[]) {
     // Listen
     listen(socket_desc , 10);
 
+    cout << socket_desc << endl;
+
     // Accept incoming connection
     //puts("Waiting for incoming connections...");
     //c = sizeof(struct sockaddr_in);
@@ -75,16 +97,16 @@ int main(int argc, char * argv[]) {
     //client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
 
     do {
-        FD_ZERO(&readset);
-        FD_SET(0, &readset);
-        FD_SET(socket_desc, &readset);
+        //FD_ZERO(&readset);
+        //FD_SET(0, &readset);
+        //FD_SET(socket_desc, &readset);
 
-        int selRet = select(socket_desc + 1, &readset, NULL, NULL, NULL);
-
-        if(selRet == -1) {
+        //int selRet = select(socket_desc + 1, &readset, NULL, NULL, NULL);
+        client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
+        if(client_sock < 0) {
             // error: select error
         }
-
+/*
         if(FD_ISSET(0, &readset)) {
             // check if exit
             string userIn;
@@ -93,17 +115,36 @@ int main(int argc, char * argv[]) {
             for (std::string::size_type i = 0; i < userIn.length(); ++i) {
                 userIn[i] = toupper(userIn[i], loc);
             }
-            if(userIn.compare("EXIT")) {
+            if(!userIn.compare("EXIT")) {
                 break;
             } else {
+                //TODO deal with error
                 cerr << "Error" << endl;
                 exit(1);
             }
 
         } else {
-            //
-        }
+        */
+
+            pthread_t p;
+            threadsVec.push_back(&p);
+            int ret = pthread_create(&p, NULL, doJob, (void *) &socket_desc);
+            if(ret == -1) {
+                 //TODO
+                break;
+            }
+
     } while(true);
+
+    int t_res;
+    for(int i = 0; i < threadsVec.size(); ++i) {
+        t_res = pthread_join(*threadsVec[i], NULL);
+        if(t_res != 0) {
+            //TODO
+            //sysError("pthread_join");
+        }
+    }
+
 
     /*
     if (client_sock < 0)
@@ -172,7 +213,7 @@ int emServer::addEvent(string title, string date, string description) {
     }
     // if there is no empty cell, push new event in vector's end
     if(!foundEmptyCell) {
-        // no empty cell. use pushback
+        // no empty cell. use push back
         _events.push_back(p);
     }
 
