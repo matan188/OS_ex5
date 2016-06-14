@@ -31,7 +31,7 @@ void * doJob(void * p) {
     while( (read_size = read(client_sock, client_message, 2000)) > 0 )
     {
         string str = string(client_message);
-
+        cout << "original str: " << str << endl;
         size_t pos = str.find(" ");
 
         string clientName = str.substr(0, pos);
@@ -50,13 +50,47 @@ void * doJob(void * p) {
             // do register
             int ret = ems->addClient(clientName);
             if(ret == -1) {
-                //
+                //TODO
+                //cout << "user exists" << endl;
             } else {
                 write(client_sock , client_message, strlen(client_message));
             }
-        } else if() {
+        } else if(!command.compare("CREATE")) {
+            // parse command parameters
 
+            cout << "str: " << str << endl;
+
+            pos = str.find(" ");
+            string eventTitle = str.substr(0, pos);
+            str = str.substr(pos + 1);
+
+            pos = str.find(" ");
+            string eventDate= str.substr(0, pos);
+            str = str.substr(pos + 1);
+
+            string eventDescreption = string(str);
+
+            cout << "eventTitle: " << eventTitle << endl;
+            cout << "eventDate: " << eventDate << endl;
+            cout << "eventDescreption: " << eventDescreption << endl;
+
+
+            write(client_sock , client_message, strlen(client_message));
+        } else if(!command.compare("GET_TOP_5")) {
+            write(client_sock , client_message, strlen(client_message));
+        } else if(!command.compare("SEND_RSVP")) {
+            write(client_sock , client_message, strlen(client_message));
+        } else if(!command.compare("GET_RSVPS_LIST")) {
+            write(client_sock , client_message, strlen(client_message));
+        } else if(!command.compare("UNREGISTER")) {
+            write(client_sock , client_message, strlen(client_message));
+        } else {
+            // unknown command
+            //TODO
+            cout << "unknown command" << endl;
+            write(client_sock , client_message, strlen(client_message));
         }
+
     }
 
     if(read_size == 0)
