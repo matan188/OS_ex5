@@ -18,6 +18,7 @@
 #include <pthread.h>
 #include <algorithm>
 #include <locale.h>
+#include <sstream>
 #include "Event.h"
 
 using namespace std;

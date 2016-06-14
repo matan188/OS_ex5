@@ -8,8 +8,24 @@
 #include <string.h>    //strlen
 #include <sys/socket.h>    //socket
 #include <arpa/inet.h> //inet_addr
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+
+using namespace std;
 
 int main(int argc , char *argv[]) {
+
+
+    if(argc != 4) {
+        cout << "Usage: emClient clientName serverAddress serverPort" << endl;
+        exit(0);
+    }
+
+    string clientName = string(argv[1]);
+    char* serverAddress = argv[2];
+    int portNum = atoi(argv[3]); // set port number
+
     int sock;
     struct sockaddr_in server;
     char message[1000] , server_reply[2000];
@@ -22,9 +38,9 @@ int main(int argc , char *argv[]) {
     }
     puts("Socket created");
 
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_addr.s_addr = inet_addr(serverAddress);
     server.sin_family = AF_INET;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons( portNum );
 
     //Connect to remote server
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
@@ -38,9 +54,13 @@ int main(int argc , char *argv[]) {
     //keep communicating with server
     while(1)
     {
-        printf("Enter message : ");
-        scanf("%s" , message);
+        string strMessage;
+        cin >> strMessage;
 
+        strMessage = clientName + " " + strMessage;
+
+        const char* message;
+        message = strMessage.c_str();
         //Send some data
         if( send(sock , message , strlen(message) , 0) < 0)
         {

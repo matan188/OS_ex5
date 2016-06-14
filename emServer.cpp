@@ -5,6 +5,8 @@ using namespace std;
 
 vector<pthread_t *> threadsVec;
 int socket_desc;
+emServer * ems = new emServer();
+
 bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> * b) {
     if(a == nullptr) {
         return -1;
@@ -20,20 +22,55 @@ void writeToLog(string msg) {
 }
 
 void * doJob(void * p) {
-    int * client_sock = (int *) p;
-    cout << "doing job" << endl;
+    int client_sock = *((int *) p);
+    cout << "doing job: " << client_sock << endl;
 
     char client_message[2000];
     ssize_t read_size;
     // Receive a message from client
-    read_size = read(socket_desc, client_message, 100);
-    cout << read_size << endl;
-    while(read_size > 0) {
-        cout << client_message << endl;
-        read_size = read(socket_desc, client_message, 100);
+    while( (read_size = read(client_sock, client_message, 2000)) > 0 )
+    {
+        string str = string(client_message);
+
+        size_t pos = str.find(" ");
+
+        string clientName = str.substr(0, pos);
+        str = str.substr(pos + 1);
+
+        cout << "client name: " << clientName << endl;
+
+        pos = str.find(" ");
+
+        string command = str.substr(0, pos);
+        str = str.substr(pos + 1);
+
+        cout << "command name: " << command << endl;
+
+        if(!command.compare("REGISTER")) {
+            // do register
+            int ret = ems->addClient(clientName);
+            if(ret == -1) {
+                //
+            } else {
+                write(client_sock , client_message, strlen(client_message));
+            }
+        } else if() {
+
+        }
     }
 
-    close(*client_sock);
+    if(read_size == 0)
+    {
+        puts("Client disconnected");
+        fflush(stdout);
+    }
+    else if(read_size == -1)
+    {
+        perror("recv failed");
+    }
+
+    close(client_sock);
+    cout << "END:: doing job" << endl;
     return nullptr;
 }
 
@@ -44,7 +81,6 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
-    emServer * ems = new emServer();
     /*
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
     cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
@@ -83,56 +119,23 @@ int main(int argc, char * argv[]) {
     }
     cout << "bind done" << endl;
 
-    // Listen
-    listen(socket_desc , 10);
-
-    cout << socket_desc << endl;
-
-    // Accept incoming connection
-    //puts("Waiting for incoming connections...");
-    //c = sizeof(struct sockaddr_in);
-
-    // Accept connection from an incoming client
-
-    //client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-
     do {
-        //FD_ZERO(&readset);
-        //FD_SET(0, &readset);
-        //FD_SET(socket_desc, &readset);
+        // Listen
+        listen(socket_desc , 10);
 
-        //int selRet = select(socket_desc + 1, &readset, NULL, NULL, NULL);
         client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
         if(client_sock < 0) {
             // error: select error
+            cout << "cs: " << client_sock << endl;
         }
-/*
-        if(FD_ISSET(0, &readset)) {
-            // check if exit
-            string userIn;
-            getline(cin, userIn);
-            locale loc;
-            for (std::string::size_type i = 0; i < userIn.length(); ++i) {
-                userIn[i] = toupper(userIn[i], loc);
-            }
-            if(!userIn.compare("EXIT")) {
-                break;
-            } else {
-                //TODO deal with error
-                cerr << "Error" << endl;
-                exit(1);
-            }
 
-        } else {
-        */
-
-            pthread_t p;
-            threadsVec.push_back(&p);
-            int ret = pthread_create(&p, NULL, doJob, (void *) &socket_desc);
-            if(ret == -1) {
-                 //TODO
-                break;
-            }
+        pthread_t p;
+        threadsVec.push_back(&p);
+        int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
+        if(ret == -1) {
+             //TODO
+            break;
+        }
 
     } while(true);
 
