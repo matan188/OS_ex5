@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <locale.h>
 #include <sstream>
+#include <netdb.h>
+#include <fstream>
 #include "Event.h"
 
 using namespace std;

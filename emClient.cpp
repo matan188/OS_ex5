@@ -54,14 +54,20 @@ int main(int argc , char *argv[]) {
     //keep communicating with server
     while(1)
     {
+        char inputMessage[2000];
         string strMessage;
-        cin >> strMessage;
+        getline(cin, strMessage);
+
+        //strMessage = string(inputMessage);
+        cout << "CIN: " << strMessage << endl;
 
         strMessage = clientName + " " + strMessage;
 
         const char* message;
         message = strMessage.c_str();
         //Send some data
+        cout << "message " << message << endl;
+
         if( send(sock , message , strlen(message) , 0) < 0)
         {
             puts("Send failed");
@@ -77,6 +83,8 @@ int main(int argc , char *argv[]) {
 
         puts("Server reply :");
         puts(server_reply);
+
+        memset(server_reply, 0, sizeof(server_reply));
     }
 
     close(sock);

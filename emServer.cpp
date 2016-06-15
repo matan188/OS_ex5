@@ -6,7 +6,8 @@ using namespace std;
 vector<pthread_t *> threadsVec;
 int socket_desc;
 emServer * ems = new emServer();
-
+std::ofstream logFile;
+char logPath[] = "emServer.log";
 bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> * b) {
     if(a == nullptr) {
         return -1;
@@ -17,19 +18,42 @@ bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> 
     }
 }
 
+/**
+ * Write commands to log.
+ */
 void writeToLog(string msg) {
+
     cout << "LOG\t" << msg << endl;
+
+    logFile.open(logPath, std::ios_base::app);
+    if(logFile.fail()) {
+        //sysError("open");
+    }
+
+    time_t t;
+    if((int) time(&t) < 0) {
+        //sysError("time");
+    }
+
+    logFile << t << "\t" << msg << "\n";
+    if(logFile.fail()) {
+        //sysError("close");
+    }
+    logFile.close();
 }
+
 
 void * doJob(void * p) {
     int client_sock = *((int *) p);
     cout << "doing job: " << client_sock << endl;
 
     char client_message[2000];
+    char server_message[2000];
     ssize_t read_size;
     // Receive a message from client
     while( (read_size = read(client_sock, client_message, 2000)) > 0 )
     {
+        cout << "original readsize: " << read_size << endl;
         string str = string(client_message);
         cout << "original str: " << str << endl;
         size_t pos = str.find(" ");
@@ -50,10 +74,13 @@ void * doJob(void * p) {
             // do register
             int ret = ems->addClient(clientName);
             if(ret == -1) {
-                //TODO
-                //cout << "user exists" << endl;
+                server_message[0] = '1';
+                writeToLog("ERROR: " + clientName + "\t is already exists.\n");
+                write(client_sock , server_message, strlen(server_message));
             } else {
-                write(client_sock , client_message, strlen(client_message));
+                server_message[0] = '0';
+                writeToLog(clientName + "\t was registered successfully.\n");
+                write(client_sock , server_message, strlen(server_message));
             }
         } else if(!command.compare("CREATE")) {
             // parse command parameters
@@ -68,14 +95,22 @@ void * doJob(void * p) {
             string eventDate= str.substr(0, pos);
             str = str.substr(pos + 1);
 
-            string eventDescreption = string(str);
+            string eventDescription = string(str);
 
             cout << "eventTitle: " << eventTitle << endl;
             cout << "eventDate: " << eventDate << endl;
-            cout << "eventDescreption: " << eventDescreption << endl;
+            cout << "eventDescription: " << eventDescription << endl;
 
+            int ret = ems->addEvent(eventTitle, eventDate, eventDescription);
 
-            write(client_sock , client_message, strlen(client_message));
+            if(ret == -1) {
+                server_message[0] = '1';
+                write(client_sock , server_message, strlen(server_message));
+            } else {
+                server_message[0] = '0';
+                writeToLog(clientName + "\t" + to_string(ret) + " was assigned to the event with title " + eventTitle + ".\n");
+                write(client_sock , server_message, strlen(server_message));
+            }
         } else if(!command.compare("GET_TOP_5")) {
             write(client_sock , client_message, strlen(client_message));
         } else if(!command.compare("SEND_RSVP")) {
@@ -83,14 +118,24 @@ void * doJob(void * p) {
         } else if(!command.compare("GET_RSVPS_LIST")) {
             write(client_sock , client_message, strlen(client_message));
         } else if(!command.compare("UNREGISTER")) {
-            write(client_sock , client_message, strlen(client_message));
+            // do register
+            int ret = ems->removeClient(clientName);
+            if(ret == -1) {
+                server_message[0] = '1';
+                write(client_sock , server_message, strlen(server_message));
+            } else {
+                server_message[0] = '0';
+                writeToLog(clientName + "\t was unregistered successfully.\n");
+                write(client_sock , server_message, strlen(server_message));
+            }
         } else {
             // unknown command
             //TODO
             cout << "unknown command" << endl;
             write(client_sock , client_message, strlen(client_message));
         }
-
+        memset(client_message, 0, sizeof(client_message));
+        memset(server_message, 0, sizeof(server_message));
     }
 
     if(read_size == 0)
@@ -129,6 +174,22 @@ int main(int argc, char * argv[]) {
     int portNum = atoi(argv[1]); // set port number
     int client_sock , c;
     struct sockaddr_in server, client;
+
+
+    ///To be deleted: just to see the ip address
+    struct hostent * hostP;
+    char myHostName[1000];
+    gethostname(myHostName, 1000);
+
+    if ((hostP = gethostbyname(myHostName)) == NULL) {
+        fprintf(stderr, "gethostbyname ");
+        exit(1);
+    }
+
+    printf("Host name : %s\n", hostP->h_name);
+    printf("IP Address : %s\n",
+           inet_ntoa(*((struct in_addr *)hostP->h_addr)));
+    //// End of delete: just to see the ip address
 
     fd_set readset;
 
@@ -232,6 +293,7 @@ emServer::~emServer() {
  * returns id of new event on success, -1 on error
  */
 int emServer::addEvent(string title, string date, string description) {
+    //TODO on error return -1
     // find empty cell and add event
     vector<string> * clients = new vector<string>;
     int id = getEventCounter();
@@ -288,10 +350,7 @@ int emServer::addClient(string name) {
             break;
         }
     }
-    if(ret == -1) {
-        // error - client name already exists
-        writeToLog("ERROR: the client " + name + " was already registered.\n");
-    } else {
+    if(ret != -1) {
         _clients.push_back(name);
     }
     pthread_mutex_unlock(&_clientsMut);
@@ -306,6 +365,7 @@ int emServer::removeClient(string name) {
     int ret = -1;
     pthread_mutex_lock(&_clientsMut);
     auto it = _clients.begin();
+    // remove from clients list
     for(auto otherName : _clients) {
         if(name.compare(otherName) == 0) {
             _clients.erase(it, it + 1);
@@ -314,6 +374,18 @@ int emServer::removeClient(string name) {
         }
         ++it;
     }
+    for(auto event : _events) {
+        auto vec = event->second;
+        auto it = vec->begin();
+        for(auto otherClient : *vec) {
+            if(name.compare(otherClient) == 0) {
+                vec->erase(it, it + 1);
+                break;
+            }
+            ++it;
+        }
+    }
+
     pthread_mutex_unlock(&_clientsMut);
     return ret;
 }
