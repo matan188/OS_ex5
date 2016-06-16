@@ -42,6 +42,9 @@ void writeToLog(string msg) {
     logFile.close();
 }
 
+void * handleExit(void * p) {
+
+}
 
 void * doJob(void * p) {
     int client_sock = *((int *) p);
@@ -121,11 +124,9 @@ void * doJob(void * p) {
         int ret = ems->assignClientToEvent(eventId, clientName);
 
         if(ret == -1) {
-            // already in
             server_message[0] = '1';
             write(client_sock , server_message, strlen(server_message));
         } else if(ret == -2) {
-            // already in
             server_message[0] = '2';
             write(client_sock , server_message, strlen(server_message));
         } else {
@@ -397,7 +398,7 @@ int emServer::assignClientToEvent(int eventId, string clientName) {
                 }
             }
             if(clientAlreadyAssigned) {
-                // error: client already assigned to this event
+                ret = -2;
             } else {
                 event->second->push_back(clientName);
                 ret = 0;
@@ -405,7 +406,7 @@ int emServer::assignClientToEvent(int eventId, string clientName) {
         }
     }
     if(!eventIdExists) {
-        // error: event id not exists
+        ret = -1;
     }
     return ret;
 }
