@@ -47,96 +47,131 @@ void * doJob(void * p) {
     int client_sock = *((int *) p);
     cout << "doing job: " << client_sock << endl;
 
-    char client_message[2000];
-    char server_message[2000];
+    char client_message[99999];
+    char server_message[99999];
     ssize_t read_size;
     // Receive a message from client
-    while( (read_size = read(client_sock, client_message, 2000)) > 0 )
-    {
-        cout << "original readsize: " << read_size << endl;
-        string str = string(client_message);
-        cout << "original str: " << str << endl;
-        size_t pos = str.find(" ");
+    while( (read_size = read(client_sock, client_message, 99999)) > 0 )
+    { break; }
 
-        string clientName = str.substr(0, pos);
-        str = str.substr(pos + 1);
+    cout << "original readsize: " << read_size << endl;
+    string str = string(client_message);
+    cout << "original str: " << str << endl;
+    size_t pos = str.find(" ");
 
-        cout << "client name: " << clientName << endl;
+    string clientName = str.substr(0, pos);
+    str = str.substr(pos + 1);
+
+    cout << "client name: " << clientName << endl;
+
+    pos = str.find(" ");
+
+    string command = str.substr(0, pos);
+    str = str.substr(pos + 1);
+
+    cout << "command name: " << command << endl;
+
+    if(!command.compare("REGISTER")) {
+        // do register
+        int ret = ems->addClient(clientName);
+        if(ret == -1) {
+            server_message[0] = '1';
+            writeToLog("ERROR: " + clientName + "\t is already exists.\n");
+            write(client_sock , server_message, strlen(server_message));
+        } else {
+            server_message[0] = '0';
+            writeToLog(clientName + "\t was registered successfully.\n");
+            write(client_sock , server_message, strlen(server_message));
+        }
+    } else if(!command.compare("CREATE")) {
 
         pos = str.find(" ");
-
-        string command = str.substr(0, pos);
+        string eventTitle = str.substr(0, pos);
         str = str.substr(pos + 1);
 
-        cout << "command name: " << command << endl;
+        pos = str.find(" ");
+        string eventDate= str.substr(0, pos);
+        str = str.substr(pos + 1);
 
-        if(!command.compare("REGISTER")) {
-            // do register
-            int ret = ems->addClient(clientName);
-            if(ret == -1) {
-                server_message[0] = '1';
-                writeToLog("ERROR: " + clientName + "\t is already exists.\n");
-                write(client_sock , server_message, strlen(server_message));
-            } else {
-                server_message[0] = '0';
-                writeToLog(clientName + "\t was registered successfully.\n");
-                write(client_sock , server_message, strlen(server_message));
-            }
-        } else if(!command.compare("CREATE")) {
-            // parse command parameters
+        string eventDescription = string(str);
 
-            cout << "str: " << str << endl;
+        int ret = ems->addEvent(eventTitle, eventDate, eventDescription);
 
-            pos = str.find(" ");
-            string eventTitle = str.substr(0, pos);
-            str = str.substr(pos + 1);
-
-            pos = str.find(" ");
-            string eventDate= str.substr(0, pos);
-            str = str.substr(pos + 1);
-
-            string eventDescription = string(str);
-
-            cout << "eventTitle: " << eventTitle << endl;
-            cout << "eventDate: " << eventDate << endl;
-            cout << "eventDescription: " << eventDescription << endl;
-
-            int ret = ems->addEvent(eventTitle, eventDate, eventDescription);
-
-            if(ret == -1) {
-                server_message[0] = '1';
-                write(client_sock , server_message, strlen(server_message));
-            } else {
-                server_message[0] = '0';
-                writeToLog(clientName + "\t" + to_string(ret) + " was assigned to the event with title " + eventTitle + ".\n");
-                write(client_sock , server_message, strlen(server_message));
-            }
-        } else if(!command.compare("GET_TOP_5")) {
-            write(client_sock , client_message, strlen(client_message));
-        } else if(!command.compare("SEND_RSVP")) {
-            write(client_sock , client_message, strlen(client_message));
-        } else if(!command.compare("GET_RSVPS_LIST")) {
-            write(client_sock , client_message, strlen(client_message));
-        } else if(!command.compare("UNREGISTER")) {
-            // do register
-            int ret = ems->removeClient(clientName);
-            if(ret == -1) {
-                server_message[0] = '1';
-                write(client_sock , server_message, strlen(server_message));
-            } else {
-                server_message[0] = '0';
-                writeToLog(clientName + "\t was unregistered successfully.\n");
-                write(client_sock , server_message, strlen(server_message));
-            }
+        if(ret == -1) {
+            server_message[0] = '1';
+            write(client_sock , server_message, strlen(server_message));
         } else {
-            // unknown command
-            //TODO
-            cout << "unknown command" << endl;
-            write(client_sock , client_message, strlen(client_message));
+            server_message[0] = '0';
+            writeToLog(clientName + "\tevent id " + to_string(ret) + " was assigned to the event with title " + eventTitle + ".\n");
+            write(client_sock , server_message, strlen(server_message));
         }
-        memset(client_message, 0, sizeof(client_message));
-        memset(server_message, 0, sizeof(server_message));
+    } else if(!command.compare("GET_TOP_5")) {
+
+        writeToLog(clientName + "\trequests the top 5 newest events.\n");
+
+        string top5 = ems->getTop5();
+        top5 = "Top 5 newest events are:\n" + top5;
+        strcpy(server_message, top5.c_str());
+        write(client_sock , server_message, strlen(server_message));
+    } else if(!command.compare("SEND_RSVP")) {
+
+        pos = str.find(" ");
+        int eventId = stoi(str.substr(0, pos));
+
+        int ret = ems->assignClientToEvent(eventId, clientName);
+
+        if(ret == -1) {
+            // already in
+            server_message[0] = '1';
+            write(client_sock , server_message, strlen(server_message));
+        } else if(ret == -2) {
+            // already in
+            server_message[0] = '2';
+            write(client_sock , server_message, strlen(server_message));
+        } else {
+            writeToLog(clientName + "\tis RSVP to event with id " + to_string(eventId) + ".\n");
+            server_message[0] = '0';
+            write(client_sock , server_message, strlen(server_message));
+        }
+    } else if(!command.compare("GET_RSVPS_LIST")) {
+
+        pos = str.find(" ");
+        int eventId = stoi(str.substr(0, pos));
+
+        writeToLog(clientName + "\trequests the RSVP's list for event with id " + to_string(eventId) + ".\n");
+
+        vector<string>* list = ems->getRSVPList(eventId);
+
+        string tempList = "";
+        if(list != nullptr) {
+            for(auto client : *list) {
+                tempList += client + ",";
+            }
+        }
+        tempList = tempList.substr(0, tempList.size() - 1);
+        strcpy(server_message, tempList.c_str());
+        write(client_sock , server_message, strlen(server_message));
+
+        cout << tempList << endl;
+    } else if(!command.compare("UNREGISTER")) {
+        // do unregister
+        int ret = ems->removeClient(clientName);
+        if(ret == -1) {
+            server_message[0] = '1';
+            write(client_sock , server_message, strlen(server_message));
+        } else {
+            server_message[0] = '0';
+            writeToLog(clientName + "\t was unregistered successfully.\n");
+            write(client_sock , server_message, strlen(server_message));
+        }
+    } else {
+        // unknown command
+        //TODO
+        cout << "unknown command" << endl;
+        write(client_sock , client_message, strlen(client_message));
     }
+    memset(client_message, 0, sizeof(client_message));
+    memset(server_message, 0, sizeof(server_message));
 
     if(read_size == 0)
     {
@@ -160,36 +195,9 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
-    /*
-    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
-    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
-    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
-    cout << ems->removeEvent(1) << endl;
-    cout << ems->removeEvent(2) << endl;
-    cout << ems->addEvent("testEvent", "25/06/16", "description text") << endl;
-    cout << ems->addClient("x") << endl;
-    cout << ems->removeClient("x") << endl;
-    cout << ems->addClient("x") << endl;
-    */
     int portNum = atoi(argv[1]); // set port number
     int client_sock , c;
     struct sockaddr_in server, client;
-
-
-    ///To be deleted: just to see the ip address
-    struct hostent * hostP;
-    char myHostName[1000];
-    gethostname(myHostName, 1000);
-
-    if ((hostP = gethostbyname(myHostName)) == NULL) {
-        fprintf(stderr, "gethostbyname ");
-        exit(1);
-    }
-
-    printf("Host name : %s\n", hostP->h_name);
-    printf("IP Address : %s\n",
-           inet_ntoa(*((struct in_addr *)hostP->h_addr)));
-    //// End of delete: just to see the ip address
 
     fd_set readset;
 
@@ -242,33 +250,6 @@ int main(int argc, char * argv[]) {
             //sysError("pthread_join");
         }
     }
-
-
-    /*
-    if (client_sock < 0)
-    {
-        perror("accept failed");
-        return 1;
-    }
-    puts("Connection accepted");
-
-    // Receive a message from client
-    while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 )
-    {
-        // Send the message back to client
-        write(client_sock , client_message , strlen(client_message));
-    }
-
-    if(read_size == 0)
-    {
-        puts("Client disconnected");
-        fflush(stdout);
-    }
-    else if(read_size == -1)
-    {
-        perror("recv failed");
-    }
-    */
 
     return 0;
 }
@@ -410,7 +391,7 @@ int emServer::assignClientToEvent(int eventId, string clientName) {
             eventIdExists = true;
             bool clientAlreadyAssigned = false;
             for(auto client : *(event->second)) {
-                if(client.compare(clientName)) {
+                if(!client.compare(clientName)) {
                     clientAlreadyAssigned = true;
                     break;
                 }
@@ -451,6 +432,31 @@ int emServer::removeClientFromEvent(int eventId, string clientName) {
             if(!clientWasAssigned) {
                 // error - client was not assigned
             }
+        }
+    }
+    return ret;
+}
+
+vector<string>* emServer::getRSVPList(int eventId) {
+    for(auto it : _events) {
+        if(eventId == it->first->getId()) {
+            sort(it->second->begin(), it->second->end());
+            return it->second;
+        }
+    }
+    return nullptr;
+}
+
+string emServer::getTop5() {
+    string ret = "";
+    int i = 0;
+    for(auto event : _events) {
+        ret += event->first->getId() + "\t" + event->first->getTitle() + "\t"
+                  + event->first->getDate() + "\t"
+                  + event->first->getDescription() + ".\n";
+        ++i;
+        if(i == 5) {
+            break;
         }
     }
     return ret;

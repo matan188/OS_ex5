@@ -42,6 +42,8 @@ public:
     int getEventCounter();
     int assignClientToEvent(int eventId, string clientName);
     int removeClientFromEvent(int eventId, string clientName);
+    vector<string>* getRSVPList(int eventId);
+    string getTop5();
 };
 
 
