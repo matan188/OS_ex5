@@ -7,6 +7,11 @@ vector<pthread_t *> threadsVec;
 int socket_desc;
 emServer * ems = new emServer();
 std::ofstream logFile;
+
+pthread_mutex_t readMut = PTHREAD_MUTEX_INITIALIZER;
+
+bool doExit = false;
+
 char logPath[] = "emServer.log";
 bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> * b) {
     if(a == nullptr) {
@@ -35,7 +40,7 @@ void writeToLog(string msg) {
         //sysError("time");
     }
 
-    logFile << t << "\t" << msg << "\n";
+    logFile << t << "\t" << msg;
     if(logFile.fail()) {
         //sysError("close");
     }
@@ -43,10 +48,20 @@ void writeToLog(string msg) {
 }
 
 void * handleExit(void * p) {
-
+    while(1) {
+        string str;
+        getline(cin, str);
+        if(!str.compare("EXIT")) {
+            cout << "here" << endl;
+            doExit = true;
+            close(socket_desc);
+            break;
+        }
+    }
 }
 
 void * doJob(void * p) {
+    pthread_mutex_lock(&readMut);
     int client_sock = *((int *) p);
     cout << "doing job: " << client_sock << endl;
 
@@ -56,7 +71,7 @@ void * doJob(void * p) {
     // Receive a message from client
     while( (read_size = read(client_sock, client_message, 99999)) > 0 )
     { break; }
-
+    pthread_mutex_unlock(&readMut);
     cout << "original readsize: " << read_size << endl;
     string str = string(client_message);
     cout << "original str: " << str << endl;
@@ -101,10 +116,10 @@ void * doJob(void * p) {
         int ret = ems->addEvent(eventTitle, eventDate, eventDescription);
 
         if(ret == -1) {
-            server_message[0] = '1';
+            server_message[0] = '0';
             write(client_sock , server_message, strlen(server_message));
         } else {
-            server_message[0] = '0';
+            strcpy(server_message, to_string(ret).c_str());
             writeToLog(clientName + "\tevent id " + to_string(ret) + " was assigned to the event with title " + eventTitle + ".\n");
             write(client_sock , server_message, strlen(server_message));
         }
@@ -113,7 +128,6 @@ void * doJob(void * p) {
         writeToLog(clientName + "\trequests the top 5 newest events.\n");
 
         string top5 = ems->getTop5();
-        top5 = "Top 5 newest events are:\n" + top5;
         strcpy(server_message, top5.c_str());
         write(client_sock , server_message, strlen(server_message));
     } else if(!command.compare("SEND_RSVP")) {
@@ -223,6 +237,58 @@ int main(int argc, char * argv[]) {
     }
     cout << "bind done" << endl;
 
+    // Listen
+    listen(socket_desc , 10);
+
+    fd_set clientsFds;
+    fd_set readFds;
+
+    FD_ZERO(&clientsFds);
+    FD_ZERO(&readFds);
+
+    FD_SET(socket_desc, &clientsFds);
+    FD_SET(STDIN_FILENO, &clientsFds);
+
+    do {
+
+        readFds = clientsFds;
+        pthread_mutex_lock(&readMut);
+        pthread_mutex_unlock(&readMut);
+        if( select(11, &readFds, NULL, NULL, NULL) < 0 ) {
+            break;
+        }
+
+        if(FD_ISSET(socket_desc, &readFds)) {
+            client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
+            pthread_t p;
+            threadsVec.push_back(&p);
+            int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
+
+            if(ret == -1) {
+                //TODO
+                break;
+            }
+        } else {
+            cout << "in else" << endl;
+            char user_message[99999];
+            ssize_t read_size;
+            // Receive a message from client
+            read_size = read(STDIN_FILENO, user_message, 99999);
+            cout << "user_message: " << user_message << endl;
+            cout << string(user_message).compare("EXIT") << endl;
+            cout << string(user_message).length() << endl;
+            if(string(user_message).compare("EXIT\n") == 0) {
+                cout << "in exit" << endl;
+                doExit = true;
+            }
+        }
+
+    } while(!doExit);
+
+/*
+    pthread_t p1;
+    pthread_create(&p1, NULL, handleExit, nullptr);
+
     do {
         // Listen
         listen(socket_desc , 10);
@@ -241,8 +307,8 @@ int main(int argc, char * argv[]) {
             break;
         }
 
-    } while(true);
-
+    } while(!doExit);
+*/
     int t_res;
     for(int i = 0; i < threadsVec.size(); ++i) {
         t_res = pthread_join(*threadsVec[i], NULL);
@@ -451,10 +517,10 @@ vector<string>* emServer::getRSVPList(int eventId) {
 string emServer::getTop5() {
     string ret = "";
     int i = 0;
-    for(auto event : _events) {
-        ret += event->first->getId() + "\t" + event->first->getTitle() + "\t"
-                  + event->first->getDate() + "\t"
-                  + event->first->getDescription() + ".\n";
+    for(auto event = _events.end(); event != _events.begin(); --event) {
+        ret += to_string((*event)->first->getId()) + "\t" + (*event)->first->getTitle() + "\t"
+                  + (*event)->first->getDate() + "\t"
+                  + (*event)->first->getDescription() + ".\n";
         ++i;
         if(i == 5) {
             break;

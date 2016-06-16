@@ -121,7 +121,9 @@ int main(int argc , char *argv[]) {
             }
         } else if(!command.compare("CREATE")) {
             size_t n = count(str.begin(), str.end(), ' ');
-            if(n < 3) {
+            cout << "str: " << str << endl;
+            cout << "n: " << n << endl;
+            if(n < 2) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
@@ -143,8 +145,8 @@ int main(int argc , char *argv[]) {
             }
         } else if(!command.compare("SEND_RSVP")) {
 
-            size_t n = count(str.begin(), str.end(), ' ');
-            if(n < 1) {
+
+            if(str.length() == 0) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
@@ -154,8 +156,7 @@ int main(int argc , char *argv[]) {
             str = str.substr(pos + 1);
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
-            size_t n = count(str.begin(), str.end(), ' ');
-            if(n < 1) {
+            if(str.length() == 0) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
@@ -234,13 +235,20 @@ int main(int argc , char *argv[]) {
         } else if(!command.compare("SEND_RSVP")) {
             int res = atoi(server_reply);
             if(res == 0) {
-                writeToLog("RSVP to event id " + eventId + " was received successfully.\n");
+                writeToLog("RSVP to event id " + to_string(eventId) + " was received successfully.\n");
             } else if(res == 1) {
-                writeToLog("ERROR: failed to send RSVP to eventId " + eventId + ": event not exists.\n");
+                writeToLog("ERROR: failed to send RSVP to eventId " + to_string(eventId) + ": event not exists.\n");
             }
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
+            writeToLog("The RSVP's list for event id " + to_string(eventId) + " is: " + string(server_reply) + ".\n");
         } else if(!command.compare("UNREGISTER")) {
+            if(atoi(server_reply) == 1) {
+                writeToLog("ERROR: the client " + clientName + " was not registered.\n");
+            } else {
+                writeToLog("Client " + clientName + " was unregistered successfully.\n");
+                emc.setRegister(false);
+            }
         }
 
         puts("Server reply :");
