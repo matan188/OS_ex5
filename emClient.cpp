@@ -43,8 +43,6 @@ string getTime(bool withSep) {
  */
 void writeToLog(string msg) {
 
-    cout << "LOG\t" << msg << endl;
-
     logFile.open(logPath, std::ios_base::app);
     if(logFile.fail()) {
         //sysError("open");
@@ -74,7 +72,6 @@ int main(int argc , char *argv[]) {
     const char * cLogPath = logFile.c_str();
     strcpy(logPath, cLogPath);
 
-
     int sock;
     struct sockaddr_in server;
     char message[99999] , server_reply[99999];
@@ -87,8 +84,6 @@ int main(int argc , char *argv[]) {
         string strOriginal, str;
         getline(cin, str);
         strOriginal = str;
-        //strMessage = string(inputMessage);
-        cout << "CIN: " << str << endl;
 
         /** parse msg **/
 
@@ -109,8 +104,6 @@ int main(int argc , char *argv[]) {
             clientName[i] = toupper(clientName[i], loc2);
         }
 
-        cout<<"command: "<<command<<endl;
-
         string eventId;
 
         if(!command.compare("REGISTER")) {
@@ -121,8 +114,6 @@ int main(int argc , char *argv[]) {
             }
         } else if(!command.compare("CREATE")) {
             size_t n = count(str.begin(), str.end(), ' ');
-            cout << "str: " << str << endl;
-            cout << "n: " << n << endl;
             if(n < 2) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
                 clientError = true;
@@ -144,7 +135,6 @@ int main(int argc , char *argv[]) {
                 clientError = true;
             }
         } else if(!command.compare("SEND_RSVP")) {
-
 
             if(str.length() == 0) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
@@ -179,16 +169,13 @@ int main(int argc , char *argv[]) {
         const char* message;
         message = str.c_str();
         //Send some data
-        cout << "message " << message << endl;
-
         /** Connect to server **/
         // Create socket
         sock = socket(AF_INET , SOCK_STREAM , 0);
         if (sock == -1)
         {
-            printf("Could not create socket");
+            writeToLog("ERROR\tsocket\t" + to_string(errno) + ".\n");
         }
-        puts("Socket created");
 
         server.sin_addr.s_addr = inet_addr(serverAddress);
         server.sin_family = AF_INET;
@@ -197,7 +184,7 @@ int main(int argc , char *argv[]) {
         // Connect to remote server
         if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
         {
-            perror("connect failed. Error");
+            writeToLog("ERROR\tconnect\t" + to_string(errno) + ".\n");
             return 1;
         }
         /** connected **/
@@ -205,14 +192,14 @@ int main(int argc , char *argv[]) {
 
         if( send(sock , message , strlen(message) , 0) < 0)
         {
-            puts("Send failed");
+            writeToLog("ERROR\tsend\t" + to_string(errno) + ".\n");
             return 1;
         }
 
         //Receive a reply from the server
-        if( recv(sock , server_reply , 2000 , 0) < 0)
+        if( recv(sock , server_reply , 99999 , 0) < 0)
         {
-            puts("recv failed");
+            writeToLog("ERROR\trecv\t" + to_string(errno) + ".\n");
             break;
         }
 
@@ -235,13 +222,13 @@ int main(int argc , char *argv[]) {
         } else if(!command.compare("SEND_RSVP")) {
             int res = atoi(server_reply);
             if(res == 0) {
-                writeToLog("RSVP to event id " + to_string(eventId) + " was received successfully.\n");
+                writeToLog("RSVP to event id " + eventId + " was received successfully.\n");
             } else if(res == 1) {
-                writeToLog("ERROR: failed to send RSVP to eventId " + to_string(eventId) + ": event not exists.\n");
+                writeToLog("ERROR: failed to send RSVP to eventId " + eventId + ": event not exists.\n");
             }
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
-            writeToLog("The RSVP's list for event id " + to_string(eventId) + " is: " + string(server_reply) + ".\n");
+            writeToLog("The RSVP's list for event id " + eventId + " is: " + string(server_reply) + ".\n");
         } else if(!command.compare("UNREGISTER")) {
             if(atoi(server_reply) == 1) {
                 writeToLog("ERROR: the client " + clientName + " was not registered.\n");
@@ -251,10 +238,8 @@ int main(int argc , char *argv[]) {
             }
         }
 
-        puts("Server reply :");
-        puts(server_reply);
-
         memset(server_reply, 0, sizeof(server_reply));
+
     }
 
     close(sock);

@@ -1,6 +1,6 @@
 
 #include "emServer.h"
-
+#include <time.h>
 using namespace std;
 
 vector<pthread_t *> threadsVec;
@@ -23,24 +23,36 @@ bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> 
     }
 }
 
+
+string getTime(bool withSep) {
+    time_t t;
+    struct tm * timeinfo;
+    char buffer[80];
+    if((int) time(&t) < 0) {
+        //sysError("time");
+    }
+
+    timeinfo = localtime(&t);
+
+    if(withSep) {
+        strftime(buffer, 80, "%H:%M:%S", timeinfo);
+    } else {
+        strftime(buffer, 80, "%H%M%S", timeinfo);
+    }
+    return string(buffer);
+}
+
 /**
  * Write commands to log.
  */
 void writeToLog(string msg) {
-
-    cout << "LOG\t" << msg << endl;
 
     logFile.open(logPath, std::ios_base::app);
     if(logFile.fail()) {
         //sysError("open");
     }
 
-    time_t t;
-    if((int) time(&t) < 0) {
-        //sysError("time");
-    }
-
-    logFile << t << "\t" << msg;
+    logFile << getTime(true) << "\t" << msg;
     if(logFile.fail()) {
         //sysError("close");
     }
@@ -52,7 +64,6 @@ void * handleExit(void * p) {
         string str;
         getline(cin, str);
         if(!str.compare("EXIT")) {
-            cout << "here" << endl;
             doExit = true;
             close(socket_desc);
             break;
@@ -63,7 +74,6 @@ void * handleExit(void * p) {
 void * doJob(void * p) {
     pthread_mutex_lock(&readMut);
     int client_sock = *((int *) p);
-    cout << "doing job: " << client_sock << endl;
 
     char client_message[99999];
     char server_message[99999];
@@ -72,22 +82,16 @@ void * doJob(void * p) {
     while( (read_size = read(client_sock, client_message, 99999)) > 0 )
     { break; }
     pthread_mutex_unlock(&readMut);
-    cout << "original readsize: " << read_size << endl;
     string str = string(client_message);
-    cout << "original str: " << str << endl;
     size_t pos = str.find(" ");
 
     string clientName = str.substr(0, pos);
     str = str.substr(pos + 1);
 
-    cout << "client name: " << clientName << endl;
-
     pos = str.find(" ");
 
     string command = str.substr(0, pos);
     str = str.substr(pos + 1);
-
-    cout << "command name: " << command << endl;
 
     if(!command.compare("REGISTER")) {
         // do register
@@ -98,7 +102,7 @@ void * doJob(void * p) {
             write(client_sock , server_message, strlen(server_message));
         } else {
             server_message[0] = '0';
-            writeToLog(clientName + "\t was registered successfully.\n");
+            writeToLog(clientName + "\twas registered successfully.\n");
             write(client_sock , server_message, strlen(server_message));
         }
     } else if(!command.compare("CREATE")) {
@@ -167,7 +171,6 @@ void * doJob(void * p) {
         strcpy(server_message, tempList.c_str());
         write(client_sock , server_message, strlen(server_message));
 
-        cout << tempList << endl;
     } else if(!command.compare("UNREGISTER")) {
         // do unregister
         int ret = ems->removeClient(clientName);
@@ -181,8 +184,6 @@ void * doJob(void * p) {
         }
     } else {
         // unknown command
-        //TODO
-        cout << "unknown command" << endl;
         write(client_sock , client_message, strlen(client_message));
     }
     memset(client_message, 0, sizeof(client_message));
@@ -190,16 +191,13 @@ void * doJob(void * p) {
 
     if(read_size == 0)
     {
-        puts("Client disconnected");
-        fflush(stdout);
     }
     else if(read_size == -1)
     {
-        perror("recv failed");
+        writeToLog("ERROR\tread\t" + to_string(errno) + ".\n");
     }
 
     close(client_sock);
-    cout << "END:: doing job" << endl;
     return nullptr;
 }
 
@@ -219,10 +217,8 @@ int main(int argc, char * argv[]) {
     // Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
-        cout << "Could not create socket" << endl;
+        writeToLog("ERROR\tsocket\t" + to_string(errno) + ".\n");
     }
-    cout << "Socket created" << endl;
-
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
@@ -232,11 +228,9 @@ int main(int argc, char * argv[]) {
     if(bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
         // Print the error message
-        cerr << "bind failed. Error" << endl;
+        writeToLog("ERROR\tbind\t" + to_string(errno) + ".\n");
         return 1;
     }
-    cout << "bind done" << endl;
-
     // Listen
     listen(socket_desc , 10);
 
@@ -265,56 +259,27 @@ int main(int argc, char * argv[]) {
             int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
 
             if(ret == -1) {
-                //TODO
+                writeToLog("ERROR\tpthread_create\t" + to_string(errno) + ".\n");
                 break;
             }
         } else {
-            cout << "in else" << endl;
             char user_message[99999];
             ssize_t read_size;
             // Receive a message from client
             read_size = read(STDIN_FILENO, user_message, 99999);
-            cout << "user_message: " << user_message << endl;
-            cout << string(user_message).compare("EXIT") << endl;
-            cout << string(user_message).length() << endl;
             if(string(user_message).compare("EXIT\n") == 0) {
-                cout << "in exit" << endl;
+                writeToLog("EXIT command is typed: server is shutdown.\n");
                 doExit = true;
             }
         }
 
     } while(!doExit);
 
-/*
-    pthread_t p1;
-    pthread_create(&p1, NULL, handleExit, nullptr);
-
-    do {
-        // Listen
-        listen(socket_desc , 10);
-
-        client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-        if(client_sock < 0) {
-            // error: select error
-            cout << "cs: " << client_sock << endl;
-        }
-
-        pthread_t p;
-        threadsVec.push_back(&p);
-        int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
-        if(ret == -1) {
-             //TODO
-            break;
-        }
-
-    } while(!doExit);
-*/
     int t_res;
     for(int i = 0; i < threadsVec.size(); ++i) {
         t_res = pthread_join(*threadsVec[i], NULL);
         if(t_res != 0) {
-            //TODO
-            //sysError("pthread_join");
+            writeToLog("ERROR\tpthread_join\t" + to_string(errno) + ".\n");
         }
     }
 
@@ -341,7 +306,6 @@ emServer::~emServer() {
  * returns id of new event on success, -1 on error
  */
 int emServer::addEvent(string title, string date, string description) {
-    //TODO on error return -1
     // find empty cell and add event
     vector<string> * clients = new vector<string>;
     int id = getEventCounter();
@@ -517,7 +481,7 @@ vector<string>* emServer::getRSVPList(int eventId) {
 string emServer::getTop5() {
     string ret = "";
     int i = 0;
-    for(auto event = _events.end(); event != _events.begin(); --event) {
+    for(auto event = _events.end() - 1; event != _events.begin() - 1; --event) {
         ret += to_string((*event)->first->getId()) + "\t" + (*event)->first->getTitle() + "\t"
                   + (*event)->first->getDate() + "\t"
                   + (*event)->first->getDescription() + ".\n";
