@@ -20,29 +20,12 @@ using namespace std;
 std::ofstream logFile;
 char logPath[99999];
 
-/**
- * Write commands to log.
- */
-void writeToLog(string msg) {
-
-    logFile.open(logPath, std::ios_base::app);
-    if(logFile.fail()) {
-        writeToLog("ERROR\topen\t" + to_string(errno) + ".\n");
-    }
-
-    logFile << getTime(true) << "\t" << msg;
-    if(logFile.fail()) {
-        writeToLog("ERROR\tclose\t" + to_string(errno) + ".\n");
-    }
-    logFile.close();
-}
-
 string getTime(bool withSep) {
     time_t t;
     struct tm * timeinfo;
     char buffer[80];
     if((int) time(&t) < 0) {
-        writeToLog("ERROR\ttime\t" + to_string(errno) + ".\n");
+        //sysError("time");
     }
 
     timeinfo = localtime(&t);
@@ -54,6 +37,25 @@ string getTime(bool withSep) {
     }
     return string(buffer);
 }
+
+
+/**
+ * Write commands to log.
+ */
+void writeToLog(string msg) {
+
+    logFile.open(logPath, std::ios_base::app);
+    if(logFile.fail()) {
+        //sysError("open");
+    }
+
+    logFile << getTime(true) << "\t" << msg;
+    if(logFile.fail()) {
+        //sysError("close");
+    }
+    logFile.close();
+}
+
 
 
 int main(int argc , char *argv[]) {
