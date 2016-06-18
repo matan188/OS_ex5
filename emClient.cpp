@@ -77,6 +77,7 @@ int main(int argc , char *argv[]) {
     struct sockaddr_in server;
     char server_reply[99999];
 
+
     //keep communicating with server
     while(1)
     {
@@ -136,7 +137,7 @@ int main(int argc , char *argv[]) {
         } else if(!command.compare("CREATE")) {
             size_t n = count(str.begin(), str.end(), ' ');
             if(n < 2) {
-                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: missing arguments in command " + command + ".\n");
                 clientError = true;
             }
 
@@ -150,40 +151,46 @@ int main(int argc , char *argv[]) {
 
             string eventDescription = string(str);
 
-            if(eventTitle.size() > 30 || eventDate.size() > 30 ||
-                    eventDescription.size() > 256) {
-                writeToLog("ERROR: " + command + "\tinvalid argument.\n");
+            if(eventTitle.size() > 30) {
+                writeToLog("ERROR: invalid arguments " + eventTitle +
+                                   "in command " + command + ".\n");
+                clientError = true;
+            } else if (eventDate.size() > 30) {
+                writeToLog("ERROR: invalid arguments " + eventDate +
+                           "in command " + command + ".\n");
+                clientError = true;
+            } else if (eventDescription.size() > 256) {
+                writeToLog("ERROR: invalid arguments " + eventDescription +
+                           "in command " + command + ".\n");
                 clientError = true;
             }
         } else if(!command.compare("SEND_RSVP")) {
 
-            cout << "str: " << str << endl;
-
             if(str.length() == 0) {
-                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: missing arguments in command " + command + ".\n");
                 clientError = true;
             }
-
             eventId = str;
-
         } else if(!command.compare("GET_RSVPS_LIST")) {
             if(str.length() == 0) {
-                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: missing arguments in command " + command + ".\n");
                 clientError = true;
             }
+            eventId = str;
         } else if(!command.compare("UNREGISTER")) {
             if(!emc.getIsRegistered()) {
                 writeToLog("ERROR: " + command
                            + "\tclient is not registered.\n");
                 clientError = true;
             }
+        } else if(!command.compare("GET_TOP_5")) {
+            //pass
         } else {
             writeToLog("ERROR: illegel command.\n");
             clientError = true;
         }
 
         /** end of parsing **/
-
         if(clientError) {
             continue;
         }
@@ -235,11 +242,11 @@ int main(int argc , char *argv[]) {
                 emc.setRegister(true);
             }
         } else if(!command.compare("CREATE")) {
-            int eventId = atoi(server_reply);
-            if(eventId == 0) {
+            int inEventId = atoi(server_reply);
+            if(inEventId == 0) {
                 writeToLog("ERROR: failed to create the event: unknown failure.\n");
             } else {
-                writeToLog("Event id " + to_string(eventId) + " was created successfully.\n");
+                writeToLog("Event id " + to_string(inEventId ) + " was created successfully.\n");
             }
         } else if(!command.compare("GET_TOP_5")) {
             writeToLog("Top 5 newest events are:\n" + string(server_reply) + ".\n");
@@ -248,11 +255,10 @@ int main(int argc , char *argv[]) {
             if(res == 0) {
                 writeToLog("RSVP to event id " + eventId + " was received successfully.\n");
             } else if(res == 1) {
-                writeToLog("ERROR: failed to send RSVP to eventId " + eventId + ": event not exists.\n");
+                writeToLog("ERROR: failed to send RSVP to event id " + eventId + ": event not exists.\n");
             }
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
-            cout << "GET_RSVPS_LIST eventid: " << eventId << endl;
             if( eventId.length() == 0 ) {
                 // Here error format is special according to instructions
                 writeToLog("ERROR\tgetRSVPList\tevent doesn't exist.\n");

@@ -67,6 +67,10 @@ void * doJob(void * p) {
     char server_message[99999];
     ssize_t read_size;
 
+
+
+
+
     // Receive a message from client
     cout << "client sock: " <<  client_sock << endl;
 
@@ -160,7 +164,6 @@ void * doJob(void * p) {
             write(client_sock , server_message, strlen(server_message));
         }
     } else if(!command.compare("GET_RSVPS_LIST")) {
-
         pos = str.find(" ");
         int eventId = stoi(str.substr(0, pos));
 
@@ -177,6 +180,7 @@ void * doJob(void * p) {
         }
         tempList = tempList.substr(0, tempList.size() - 1);
         strcpy(server_message, tempList.c_str());
+        cout << "server message " << server_message << endl;
         write(client_sock , server_message, strlen(server_message));
 
     } else if(!command.compare("UNREGISTER")) {
@@ -187,7 +191,7 @@ void * doJob(void * p) {
             write(client_sock , server_message, strlen(server_message));
         } else {
             server_message[0] = '0';
-            writeToLog(clientName + "\t was unregistered successfully.\n");
+            writeToLog(clientName + "\twas unregistered successfully.\n");
             write(client_sock , server_message, strlen(server_message));
         }
     } else {
@@ -213,6 +217,14 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
+    /* //TODO remove: To get ip in case of connect error
+    struct hostent * h;
+    char hostname[1000];
+    gethostname(hostname, 1000);
+    h = gethostbyname(hostname);
+    cout << "ip add: " << inet_ntoa(*((struct in_addr *)h->h_addr)) << endl;
+    */
+    // TODO not forget to remove
     cout << "start main" << endl;
 
     int portNum = atoi(argv[1]); // set port number
@@ -466,7 +478,7 @@ int emServer::assignClientToEvent(int eventId, string clientName) {
         }
     }
     if(!eventIdExists) {
-        writeToLog("ERROR\tassignClientToEvent even doesn't exist\n");
+        writeToLog("ERROR\tassignClientToEvent event doesn't exist\n");
         ret = -1;
     }
     return ret;
