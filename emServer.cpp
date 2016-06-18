@@ -66,20 +66,39 @@ void * doJob(void * p) {
     char client_message[99999];
     char server_message[99999];
     ssize_t read_size;
+
     // Receive a message from client
-    cout << client_sock << endl;
+    cout << "client sock: " <<  client_sock << endl;
+
     read_size = read(client_sock, client_message, 99999);
     pthread_mutex_unlock(&readMut);
     string str = string(client_message);
+
+    cout << "### complete string: " << str << endl;
+
+    // get client name
     size_t pos = str.find(" ");
-
     string clientName = str.substr(0, pos);
-    str = str.substr(pos + 1);
 
-    pos = str.find(" ");
+    // remove clientName from message
+    str = str.substr(pos + 1);
+    cout << "no clientName string: " << str << endl;
+
+    size_t spacePos = str.find(" ");
+    size_t endLinePos = str.find("\n");
+    if(spacePos == string::npos) {
+        pos = endLinePos;
+        cout << "endline if " << pos << endl;
+    } else {
+        pos = min(spacePos, endLinePos);
+        cout << "endline elseif " << pos << endl;
+    }
 
     string command = str.substr(0, pos);
     str = str.substr(pos + 1);
+
+    cout << "command is: " << command << endl;
+    cout << "string is: " << str << endl;
 
     if(!command.compare("REGISTER")) {
         // do register
@@ -94,7 +113,7 @@ void * doJob(void * p) {
             write(client_sock , server_message, strlen(server_message));
         }
     } else if(!command.compare("CREATE")) {
-
+        cout << "in Create" << endl;
         pos = str.find(" ");
         string eventTitle = str.substr(0, pos);
         str = str.substr(pos + 1);
@@ -193,6 +212,8 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
+    cout << "start main" << endl;
+
     int portNum = atoi(argv[1]); // set port number
     int client_sock , c;
     struct sockaddr_in server, client;
@@ -210,6 +231,8 @@ int main(int argc, char * argv[]) {
     // Bind
     if(bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
+        //TODO remove cout
+        cout << "error to bind with port" << endl;
         // Print the error message
         writeToLog("ERROR\tbind\t" + to_string(errno) + ".\n");
         return 1;
@@ -239,6 +262,7 @@ int main(int argc, char * argv[]) {
         }
 
         if(FD_ISSET(socket_desc, &readFds)) {
+            // Command received from client
             client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
             if(client_sock == -1) {
                 writeToLog("ERROR\taccept\t" + to_string(errno) + ".\n");
@@ -246,6 +270,8 @@ int main(int argc, char * argv[]) {
             }
             pthread_t p;
             threadsVec.push_back(&p);
+
+
             int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
 
             if(ret == -1) {
@@ -253,6 +279,7 @@ int main(int argc, char * argv[]) {
                 break;
             }
         } else {
+            // Command received from server input
             char user_message[99999];
             ssize_t read_size;
             // Receive a message from client
@@ -260,7 +287,15 @@ int main(int argc, char * argv[]) {
             if(read_size == -1) {
                 writeToLog("ERROR\tread\t" + to_string(errno) + ".\n");
             }
-            if(string(user_message).compare("EXIT\n") == 0) {
+
+            // make "exit" case insensitive
+            locale loc;
+            string userCmd = string(user_message);
+            for(string::size_type i = 0; i < userCmd.length(); ++i) {
+                userCmd[i] = toupper(userCmd[i], loc);
+            }
+
+            if(userCmd.compare("EXIT\n") == 0) {
                 writeToLog("EXIT command is typed: server is shutdown.\n");
                 doExit = true;
             }

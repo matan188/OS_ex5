@@ -25,6 +25,7 @@ string getTime(bool withSep) {
     struct tm * timeinfo;
     char buffer[80];
     if((int) time(&t) < 0) {
+        //TODO what to do with these?
         //sysError("time");
     }
 
@@ -81,22 +82,35 @@ int main(int argc , char *argv[]) {
     {
         bool clientError = false;
         string strOriginal, str;
+
+        // get input from user
         getline(cin, str);
         strOriginal = str;
+
+        cout << "Client: input raw: " << strOriginal << endl;
 
         /** parse msg **/
 
         //remove command from strOriginal
-        int pos = strOriginal.find(" ");
+        size_t pos;
+
+        size_t spacePos = str.find(" ");
+        size_t endLinePos = str.find("\n");
+        if(spacePos == string::npos) {
+            pos = endLinePos;
+        } else {
+            pos = min(spacePos, endLinePos);
+        }
+
         strOriginal = strOriginal.substr(pos + 1);
 
         pos = str.find(" ");
         string command;
-        if(pos == -1) {
+        if(pos == string::npos) {
             command = str;
             str = "";
         } else {
-            string command = str.substr(0, pos);
+            command = str.substr(0, pos);
             str = str.substr(pos + 1);
         }
 
@@ -110,16 +124,19 @@ int main(int argc , char *argv[]) {
 
         string eventId;
 
+        cout << "Client:\t command: " << command << endl;
+        cout << "Client:\t str: " << str << endl;
+
         if(!command.compare("REGISTER")) {
             if(emc.getIsRegistered()) {
-                writeToLog("Error: the client " + clientName
+                writeToLog("ERROR: the client " + clientName
                            + " was already registered.\n");
                 clientError = true;
             }
         } else if(!command.compare("CREATE")) {
             size_t n = count(str.begin(), str.end(), ' ');
             if(n < 2) {
-                writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
 
@@ -135,7 +152,7 @@ int main(int argc , char *argv[]) {
 
             if(eventTitle.size() > 30 || eventDate.size() > 30 ||
                     eventDescription.size() > 256) {
-                writeToLog("Error:\t" + command + "\tinvalid argument.\n");
+                writeToLog("ERROR: " + command + "\tinvalid argument.\n");
                 clientError = true;
             }
         } else if(!command.compare("SEND_RSVP")) {
@@ -143,7 +160,7 @@ int main(int argc , char *argv[]) {
             cout << "str: " << str << endl;
 
             if(str.length() == 0) {
-                writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
 
@@ -151,15 +168,18 @@ int main(int argc , char *argv[]) {
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
             if(str.length() == 0) {
-                writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
+                writeToLog("ERROR: " + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
         } else if(!command.compare("UNREGISTER")) {
             if(!emc.getIsRegistered()) {
-                writeToLog("ERROR:\t" + command
+                writeToLog("ERROR: " + command
                            + "\tclient is not registered.\n");
                 clientError = true;
             }
+        } else {
+            writeToLog("ERROR: illegel command.\n");
+            clientError = true;
         }
 
         /** end of parsing **/
@@ -232,7 +252,14 @@ int main(int argc , char *argv[]) {
             }
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
-            writeToLog("The RSVP's list for event id " + eventId + " is: " + string(server_reply) + ".\n");
+            cout << "GET_RSVPS_LIST eventid: " << eventId << endl;
+            if( eventId.length() == 0 ) {
+                // Here error format is special according to instructions
+                writeToLog("ERROR\tgetRSVPList\tevent doesn't exist.\n");
+            }
+            else {
+                writeToLog("The RSVP's list for event id " + eventId + " is: " + string(server_reply) + ".\n");
+            }
         } else if(!command.compare("UNREGISTER")) {
             if(atoi(server_reply) == 1) {
                 writeToLog("ERROR: the client " + clientName + " was not registered.\n");
