@@ -13,7 +13,8 @@ pthread_mutex_t readMut = PTHREAD_MUTEX_INITIALIZER;
 bool doExit = false;
 
 char logPath[] = "emServer.log";
-bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*, vector<string>*> * b) {
+bool cmpEvents(pair<Event*, vector<string>*> * a, pair<Event*,
+        vector<string>*> * b) {
     if(a == nullptr) {
         return -1;
     } else if(b == nullptr) {
@@ -120,7 +121,9 @@ void * doJob(void * p) {
             write(client_sock , server_message, strlen(server_message));
         } else {
             strcpy(server_message, to_string(ret).c_str());
-            writeToLog(clientName + "\tevent id " + to_string(ret) + " was assigned to the event with title " + eventTitle + ".\n");
+            writeToLog(clientName + "\tevent id " + to_string(ret)
+                       + " was assigned to the event with title " +
+                               eventTitle + ".\n");
             write(client_sock , server_message, strlen(server_message));
         }
     } else if(!command.compare("GET_TOP_5")) {
@@ -144,7 +147,8 @@ void * doJob(void * p) {
             server_message[0] = '2';
             write(client_sock , server_message, strlen(server_message));
         } else {
-            writeToLog(clientName + "\tis RSVP to event with id " + to_string(eventId) + ".\n");
+            writeToLog(clientName + "\tis RSVP to event with id " +
+                               to_string(eventId) + ".\n");
             server_message[0] = '0';
             write(client_sock , server_message, strlen(server_message));
         }
@@ -159,7 +163,9 @@ void * doJob(void * p) {
             for(auto client : *list) {
                 tempList += client + ",";
             }
-            writeToLog(clientName + "\trequests the RSVP's list for event with id " + to_string(eventId) + ".\n");
+            writeToLog(clientName +
+                               "\trequests the RSVP's list for event with id "
+                       + to_string(eventId) + ".\n");
             tempList = tempList.substr(0, tempList.size() - 1);
             strcpy(server_message, tempList.c_str());
         } else {
@@ -251,7 +257,6 @@ int main(int argc, char * argv[]) {
         if(FD_ISSET(socket_desc, &readFds)) {
             // Command received from client
             client_sock = accept(socket_desc, NULL, NULL);
-            //client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
             if(client_sock == -1) {
                 writeToLog("ERROR\taccept\t" + to_string(errno) + ".\n");
                 break;
@@ -263,7 +268,8 @@ int main(int argc, char * argv[]) {
             int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
 
             if(ret == -1) {
-                writeToLog("ERROR\tpthread_create\t" + to_string(errno) + ".\n");
+                writeToLog("ERROR\tpthread_create\t" + to_string(errno) +
+                                   ".\n");
                 break;
             }
         } else {
@@ -345,7 +351,8 @@ int emServer::addEvent(string title, string date, string description) {
         _events.push_back(p);
     }
 
-    sort(_events.begin(), _events.end(), cmpEvents); // keep vector sorted by event id
+    // keep vector sorted by event id
+    sort(_events.begin(), _events.end(), cmpEvents);
     pthread_mutex_unlock(&_eventsMut);
     return id;
 }
@@ -499,8 +506,10 @@ vector<string>* emServer::getRSVPList(int eventId) {
 string emServer::getTop5() {
     string ret = "";
     int i = 0;
-    for(auto event = _events.end() - 1; event != _events.begin() - 1; --event) {
-        ret += to_string((*event)->first->getId()) + "\t" + (*event)->first->getTitle() + "\t"
+    for(auto event = _events.end() - 1; event != _events.begin() - 1; --event)
+    {
+        ret += to_string((*event)->first->getId()) + "\t"
+               + (*event)->first->getTitle() + "\t"
                   + (*event)->first->getDate() + "\t"
                   + (*event)->first->getDescription() + ".\n";
         ++i;
