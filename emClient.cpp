@@ -238,6 +238,7 @@ int main(int argc , char *argv[]) {
             if(atoi(server_reply) == 1) {
                 writeToLog("ERROR: the client " + clientName +
                                    " was already registered.\n");
+                exit(1);
             } else {
                 writeToLog("Client " + clientName +
                                    " was registered successfully.\n");
