@@ -164,8 +164,6 @@ void * doJob(void * p) {
         pos = str.find(" ");
         int eventId = stoi(str.substr(0, pos));
 
-        writeToLog(clientName + "\trequests the RSVP's list for event with id " + to_string(eventId) + ".\n");
-
         vector<string>* list = ems->getRSVPList(eventId);
 
         string tempList = "";
@@ -173,6 +171,9 @@ void * doJob(void * p) {
             for(auto client : *list) {
                 tempList += client + ",";
             }
+            writeToLog(clientName + "\trequests the RSVP's list for event with id " + to_string(eventId) + ".\n");
+        } else {
+            writeToLog("ERROR\tgetRSVPList\tevent doesn't exist.\n");
         }
         tempList = tempList.substr(0, tempList.size() - 1);
         strcpy(server_message, tempList.c_str());
@@ -306,7 +307,8 @@ int main(int argc, char * argv[]) {
     int t_res;
     for(int i = 0; i < (int) threadsVec.size(); ++i) {
         t_res = pthread_join(*threadsVec[i], NULL);
-        if(t_res != 0) {
+
+        if(t_res != 0 && t_res != 3) {
             writeToLog("ERROR\tpthread_join\t" + to_string(errno) + ".\n");
         }
     }
@@ -464,6 +466,7 @@ int emServer::assignClientToEvent(int eventId, string clientName) {
         }
     }
     if(!eventIdExists) {
+        writeToLog("ERROR\tassignClientToEvent even doesn't exist\n");
         ret = -1;
     }
     return ret;
