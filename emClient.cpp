@@ -20,13 +20,29 @@ using namespace std;
 std::ofstream logFile;
 char logPath[99999];
 
+/**
+ * Write commands to log.
+ */
+void writeToLog(string msg) {
+
+    logFile.open(logPath, std::ios_base::app);
+    if(logFile.fail()) {
+        writeToLog("ERROR\topen\t" + to_string(errno) + ".\n");
+    }
+
+    logFile << getTime(true) << "\t" << msg;
+    if(logFile.fail()) {
+        writeToLog("ERROR\tclose\t" + to_string(errno) + ".\n");
+    }
+    logFile.close();
+}
+
 string getTime(bool withSep) {
     time_t t;
     struct tm * timeinfo;
     char buffer[80];
     if((int) time(&t) < 0) {
-        //TODO what to do with these?
-        //sysError("time");
+        writeToLog("ERROR\ttime\t" + to_string(errno) + ".\n");
     }
 
     timeinfo = localtime(&t);
@@ -39,22 +55,6 @@ string getTime(bool withSep) {
     return string(buffer);
 }
 
-/**
- * Write commands to log.
- */
-void writeToLog(string msg) {
-
-    logFile.open(logPath, std::ios_base::app);
-    if(logFile.fail()) {
-        //sysError("open");
-    }
-
-    logFile << getTime(true) << "\t" << msg;
-    if(logFile.fail()) {
-        //sysError("close");
-    }
-    logFile.close();
-}
 
 int main(int argc , char *argv[]) {
 
@@ -87,8 +87,6 @@ int main(int argc , char *argv[]) {
         // get input from user
         getline(cin, str);
         strOriginal = str;
-
-        cout << "Client: input raw: " << strOriginal << endl;
 
         /** parse msg **/
 
@@ -124,9 +122,6 @@ int main(int argc , char *argv[]) {
         }
 
         string eventId;
-
-        cout << "Client:\t command: " << command << endl;
-        cout << "Client:\t str: " << str << endl;
 
         if(!command.compare("REGISTER")) {
             if(emc.getIsRegistered()) {

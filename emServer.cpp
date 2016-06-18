@@ -68,13 +68,9 @@ void * doJob(void * p) {
     ssize_t read_size;
 
     // Receive a message from client
-    cout << "client sock: " <<  client_sock << endl;
-
     read_size = read(client_sock, client_message, 99999);
     pthread_mutex_unlock(&readMut);
     string str = string(client_message);
-
-    cout << "### complete string: " << str << endl;
 
     // get client name
     size_t pos = str.find(" ");
@@ -207,16 +203,6 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
-    /* //TODO remove: To get ip in case of connect error
-    struct hostent * h;
-    char hostname[1000];
-    gethostname(hostname, 1000);
-    h = gethostbyname(hostname);
-    cout << "ip add: " << inet_ntoa(*((struct in_addr *)h->h_addr)) << endl;
-    */
-    // TODO not forget to remove
-    cout << "start main" << endl;
-
     int portNum = atoi(argv[1]); // set port number
     int client_sock;
     struct sockaddr_in server;
@@ -234,8 +220,6 @@ int main(int argc, char * argv[]) {
     // Bind
     if(bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
     {
-        //TODO remove cout
-        cout << "error to bind with port" << endl;
         // Print the error message
         writeToLog("ERROR\tbind\t" + to_string(errno) + ".\n");
         return 1;
@@ -266,7 +250,6 @@ int main(int argc, char * argv[]) {
 
         if(FD_ISSET(socket_desc, &readFds)) {
             // Command received from client
-            cout << "socekt desc " << socket_desc << endl;
             client_sock = accept(socket_desc, NULL, NULL);
             //client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
             if(client_sock == -1) {
@@ -504,15 +487,12 @@ int emServer::removeClientFromEvent(int eventId, string clientName) {
 }
 
 vector<string>* emServer::getRSVPList(int eventId) {
-    cout << "eventid " << eventId << endl;
     for(auto it : _events) {
-        cout << "it->first->getId() " << it->first->getId() << endl;
         if(eventId == it->first->getId()) {
             sort(it->second->begin(), it->second->end());
             return it->second;
         }
     }
-    cout << "return nullptr" << endl;
     return nullptr;
 }
 
