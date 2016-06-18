@@ -74,13 +74,12 @@ int main(int argc , char *argv[]) {
 
     int sock;
     struct sockaddr_in server;
-    char message[99999] , server_reply[99999];
+    char server_reply[99999];
 
     //keep communicating with server
     while(1)
     {
         bool clientError = false;
-        char inputMessage[99999];
         string strOriginal, str;
         getline(cin, str);
         strOriginal = str;
@@ -92,9 +91,14 @@ int main(int argc , char *argv[]) {
         strOriginal = strOriginal.substr(pos + 1);
 
         pos = str.find(" ");
-
-        string command = str.substr(0, pos);
-        str = str.substr(pos + 1);
+        string command;
+        if(pos == -1) {
+            command = str;
+            str = "";
+        } else {
+            string command = str.substr(0, pos);
+            str = str.substr(pos + 1);
+        }
 
         locale loc1, loc2;
         for(string::size_type i = 0; i < command.length(); ++i) {
@@ -136,14 +140,14 @@ int main(int argc , char *argv[]) {
             }
         } else if(!command.compare("SEND_RSVP")) {
 
+            cout << "str: " << str << endl;
+
             if(str.length() == 0) {
                 writeToLog("Error:\t" + command + "\tinvalid arguments.\n");
                 clientError = true;
             }
 
-            pos = str.find(" ");
-            eventId= str.substr(0, pos);
-            str = str.substr(pos + 1);
+            eventId = str;
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
             if(str.length() == 0) {
@@ -218,7 +222,7 @@ int main(int argc , char *argv[]) {
                 writeToLog("Event id " + to_string(eventId) + " was created successfully.\n");
             }
         } else if(!command.compare("GET_TOP_5")) {
-            writeToLog("Top 5 newest events are:\n" + string(server_reply));
+            writeToLog("Top 5 newest events are:\n" + string(server_reply) + ".\n");
         } else if(!command.compare("SEND_RSVP")) {
             int res = atoi(server_reply);
             if(res == 0) {

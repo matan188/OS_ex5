@@ -59,18 +59,6 @@ void writeToLog(string msg) {
     logFile.close();
 }
 
-void * handleExit(void * p) {
-    while(1) {
-        string str;
-        getline(cin, str);
-        if(!str.compare("EXIT")) {
-            doExit = true;
-            close(socket_desc);
-            break;
-        }
-    }
-}
-
 void * doJob(void * p) {
     pthread_mutex_lock(&readMut);
     int client_sock = *((int *) p);
@@ -79,8 +67,8 @@ void * doJob(void * p) {
     char server_message[99999];
     ssize_t read_size;
     // Receive a message from client
-    while( (read_size = read(client_sock, client_message, 99999)) > 0 )
-    { break; }
+    cout << client_sock << endl;
+    read_size = read(client_sock, client_message, 99999);
     pthread_mutex_unlock(&readMut);
     string str = string(client_message);
     size_t pos = str.find(" ");
@@ -189,10 +177,7 @@ void * doJob(void * p) {
     memset(client_message, 0, sizeof(client_message));
     memset(server_message, 0, sizeof(server_message));
 
-    if(read_size == 0)
-    {
-    }
-    else if(read_size == -1)
+    if(read_size == -1)
     {
         writeToLog("ERROR\tread\t" + to_string(errno) + ".\n");
     }
@@ -212,8 +197,6 @@ int main(int argc, char * argv[]) {
     int client_sock , c;
     struct sockaddr_in server, client;
 
-    fd_set readset;
-
     // Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
@@ -232,7 +215,9 @@ int main(int argc, char * argv[]) {
         return 1;
     }
     // Listen
-    listen(socket_desc , 10);
+    if(listen(socket_desc , 10) < 0) {
+        writeToLog("ERROR\tlisten\t" + to_string(errno) + ".\n");
+    };
 
     fd_set clientsFds;
     fd_set readFds;
@@ -249,11 +234,16 @@ int main(int argc, char * argv[]) {
         pthread_mutex_lock(&readMut);
         pthread_mutex_unlock(&readMut);
         if( select(11, &readFds, NULL, NULL, NULL) < 0 ) {
+            writeToLog("ERROR\tselect\t" + to_string(errno) + ".\n");
             break;
         }
 
         if(FD_ISSET(socket_desc, &readFds)) {
             client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
+            if(client_sock == -1) {
+                writeToLog("ERROR\taccept\t" + to_string(errno) + ".\n");
+                break;
+            }
             pthread_t p;
             threadsVec.push_back(&p);
             int ret = pthread_create(&p, NULL, doJob, (void *) &client_sock);
@@ -267,6 +257,9 @@ int main(int argc, char * argv[]) {
             ssize_t read_size;
             // Receive a message from client
             read_size = read(STDIN_FILENO, user_message, 99999);
+            if(read_size == -1) {
+                writeToLog("ERROR\tread\t" + to_string(errno) + ".\n");
+            }
             if(string(user_message).compare("EXIT\n") == 0) {
                 writeToLog("EXIT command is typed: server is shutdown.\n");
                 doExit = true;
@@ -276,7 +269,7 @@ int main(int argc, char * argv[]) {
     } while(!doExit);
 
     int t_res;
-    for(int i = 0; i < threadsVec.size(); ++i) {
+    for(int i = 0; i < (int) threadsVec.size(); ++i) {
         t_res = pthread_join(*threadsVec[i], NULL);
         if(t_res != 0) {
             writeToLog("ERROR\tpthread_join\t" + to_string(errno) + ".\n");
@@ -340,7 +333,7 @@ int emServer::addEvent(string title, string date, string description) {
 int emServer::removeEvent(int id) {
     int ret = -1;
     pthread_mutex_lock(&_eventsMut);
-    if(id < _events.size() && id >= 0) {
+    if(id < (int) _events.size() && id >= 0) {
         _events.at(id) = nullptr;
         ret = 0;
     }
