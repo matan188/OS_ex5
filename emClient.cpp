@@ -259,11 +259,10 @@ int main(int argc , char *argv[]) {
             }
 
         } else if(!command.compare("GET_RSVPS_LIST")) {
-            if( eventId.length() == 0 ) {
+            if( string(server_reply).length() == 0 ) {
                 // Here error format is special according to instructions
                 writeToLog("ERROR\tgetRSVPList\tevent doesn't exist.\n");
-            }
-            else {
+            } else {
                 writeToLog("The RSVP's list for event id " + eventId + " is: " + string(server_reply) + ".\n");
             }
         } else if(!command.compare("UNREGISTER")) {
