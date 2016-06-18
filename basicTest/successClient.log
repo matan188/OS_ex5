@@ -1,0 +1,20 @@
+15:11:39	Client Amit was registered successfully.
+15:11:39	Event id 1 was created successfully.
+15:11:39	Event id 2 was created successfully.
+15:11:39	Event id 3 was created successfully.
+15:11:39	Event id 4 was created successfully.
+15:11:39	Event id 5 was created successfully.
+15:11:39	RSVP to event id 1 was received successfully.
+15:11:39	RSVP to event id 2 was received successfully.
+15:11:39	RSVP to event id 3 was received successfully.
+15:11:39	RSVP to event id 4 was received successfully.
+15:11:39	RSVP to event id 5 was received successfully.
+15:11:39	Top 5 newest events are:
+5	event5	5.5.1974 	5Eventblablablsadsadsadsadsadsadsadsadsadd.
+4	event4	4.4.1973 	4Eventblablablsadsadsadsadsadsadsadsadsadd.
+3	event3	3.3.1972 	thirdEventblablablsadsadsadsadsadsadsadsadsadd.
+2	event2	2.2.1971 	secEventblablablsadsadsadsadsadsadsadsadsadd.
+1	event1	1.1.1970 	firstEventblablablsadsadsadsadsadsadsadsadsadd.
+.
+15:11:39	The RSVP’s list for event id 3 is: Amit.
+15:11:39	Client Amit was unregistered successfully.

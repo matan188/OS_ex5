@@ -1,0 +1,14 @@
+REGISTER
+CREATE event1 1.1.1970 firstEventblablablsadsadsadsadsadsadsadsadsadd
+CREATE event2 2.2.1971 secEventblablablsadsadsadsadsadsadsadsadsadd
+CREATE event3 3.3.1972 thirdEventblablablsadsadsadsadsadsadsadsadsadd
+CREATE event4 4.4.1973 4Eventblablablsadsadsadsadsadsadsadsadsadd
+CREATE event5 5.5.1974 5Eventblablablsadsadsadsadsadsadsadsadsadd
+SEND_RSVP 1
+SEND_RSVP 2
+SEND_RSVP 3
+SEND_RSVP 4
+SEND_RSVP 5
+GET_TOP_5
+GET_RSVPS_LIST 3
+UNREGISTER

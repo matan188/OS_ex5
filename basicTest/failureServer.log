@@ -1,0 +1,5 @@
+15:12:19	Amit	was registered successfully.
+15:12:19	ERROR	handleSendRSVPOperation	event doesn't exists.
+15:12:19	ERROR	handleGetRSVPsListOperation	event id doesn't exist.
+15:12:19	Amit	was unregistered successfully.
+15:12:22	EXIT command is typed: server is shutdown.

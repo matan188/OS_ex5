@@ -1,0 +1,15 @@
+15:11:39	Amit	was registered successfully.
+15:11:39	Amit	event id 1 was assigned to the event with title event1.
+15:11:39	Amit	event id 2 was assigned to the event with title event2.
+15:11:39	Amit	event id 3 was assigned to the event with title event3.
+15:11:39	Amit	event id 4 was assigned to the event with title event4.
+15:11:39	Amit	event id 5 was assigned to the event with title event5.
+15:11:39	Amit	is RSVP to event with id 1.
+15:11:39	Amit	is RSVP to event with id 2.
+15:11:39	Amit	is RSVP to event with id 3.
+15:11:39	Amit	is RSVP to event with id 4.
+15:11:39	Amit	is RSVP to event with id 5.
+15:11:39	Amit	requests the top 5 newest events.
+15:11:39	Amit	requests the RSVP’s list for event with id 3.
+15:11:39	Amit	was unregistered successfully.
+15:11:44	EXIT command is typed: server is shutdown.

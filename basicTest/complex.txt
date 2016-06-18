@@ -1,0 +1,19 @@
+REGISTER
+get_TOP_5
+CREAtE event1 1.1.1970 very good description
+CreATE event1 1.1.1970 very good description
+get_rsvps_list 1
+sENd_rsvp 1
+get_rsvps_list 1
+GET_top_5
+create event3 tomorrow description
+create event4 today bla bla bla 	bla \n bla
+create event5 30.3.2030 desc
+GET_top_5
+send_rsvp 1
+send_rsvp 2
+send_rsvp 3
+send_rsvp 4
+send_rsvp 5
+GET_top_5
+UNREGISTER

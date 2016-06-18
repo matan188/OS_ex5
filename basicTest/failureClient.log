@@ -1,0 +1,12 @@
+15:12:19	Client Amit was registered successfully.
+15:12:19	ERROR: illegal command.
+15:12:19	ERROR: missing arguments in command CREATE.
+15:12:19	ERROR: missing arguments in command CREATE.
+15:12:19	ERROR: missing arguments in command CREATE.
+15:12:19	ERROR: illegal command.
+15:12:19	ERROR: missing arguments in command SEND_RSVP.
+15:12:19	ERROR: failed to send RSVP to event id 5: event doesn't exists.
+15:12:19	ERROR: missing arguments in command GET_RSVPS_LIST.
+15:12:19	ERROR	handleGetRSVPsListOperation	event id doesn't exist.
+15:12:19	ERROR: illegal command.
+15:12:19	Client Amit was unregistered successfully.
