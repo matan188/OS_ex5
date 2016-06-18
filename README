@@ -1,0 +1,44 @@
+matanmo, eyalc
+Matan Modai (305097560), Eyal Cohen (301300372)
+EX: 5
+
+FILES:
+README - this file
+emServer.cpp - Server side implementation
+emServer.h - Server side h
+emClient.cpp - Client side implementation
+emClient.h - Client side h
+Event.cpp - Class for managing the events.
+Event.h - Event strucure h.
+
+
+REMARKS:
+We implemented it according to the instructions.
+
+
+ANSWERS:
+1.a. Each client will have a select that chooses between STDIN
+and socket to the server. 
+b. The server will save all the sockets that it received from the clients
+from when they registered.
+The sockets will stay open, then when a new event is created, the server will
+inform all the registered clients using the sockets that were saved.
+
+
+2. We prefer TCP over UDP because the speed of the transfer is 
+not very important but the reliability is. 
+UDP is fast but not reliable and TCP is reliable but not as 
+fast as UDP.
+
+3. Skype (VOIP) and online streaming. The reason is because it not 
+very significant if we loose a frame from the streaming video or 
+part of the data in the skype conversation. However the speed is a very 
+important factor because we wouldn't want to have delays which will 
+make the service very low quality.
+
+4. In order to avoid complete data lost, we can save some the data we would 
+want to keep on the disk (files or database). This way, if a crash occurs, 
+the program can retrieve some of the data.
+Of course, this will not backup all the data, for example if a a command has
+not finished executed before the crash, we will not recover all the variables 
+and the exact state.
